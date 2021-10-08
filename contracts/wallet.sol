@@ -1,9 +1,11 @@
 pragma solidity ^0.8.9;
 
+import '../node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol';
 import '../node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
-contract Wallet{
+
+contract Wallet is ReentrancyGuard{
     
     using SafeMath for uint256;
 
@@ -12,17 +14,17 @@ contract Wallet{
     
 
     struct Transfer {
+        uint256 id;
         uint256 amount;
-        address payable reciever;
         address sender;
+        address payable reciever;
         uint256 approvals;
         bool hasBeenSent;
-        uint256 id;
-        string ticker;
+        bytes10 ticker;
     }
-    
+   
     struct Tokens{
-        string ticker;
+        bytes10 ticker;
         address tokenAdd;
     }
 
@@ -31,10 +33,12 @@ contract Wallet{
     event ApprovalRecieved( uint256 _id, uint256 _approvals, address _approver );
     event TransferRequestCreated( uint256 _id, uint256 _amount, address _initiator, address _receiver );
     event TransferApproved( uint256 _id );
+    event TransferMade( uint256 _id, uint256 _amount, address _sender, address _reciever, bool _hasBeenSent, bytes10 _ticker);
+    event FundsDeposited( uint256 _amount, address reciever, bytes10 _ticker );
 
-    mapping(string => Tokens) public availableTokens;
+    mapping(bytes10 => Tokens) public availableTokens;
     mapping(address => mapping(uint256 => bool))approvals;
-    mapping(address => mapping(string => uint256))balance;
+    mapping(address => mapping(bytes10 => uint256))balance;
 
 
     modifier onlyOwners(){
@@ -54,18 +58,28 @@ contract Wallet{
         owners = _owners;
         limit = calculateLimit(owners.length);
         // tokenList.push("ETH");
-        
     }
     
     
 
-    function deposit()public payable{
+    function deposit()public payable onlyOwners{
         require(msg.value > 0, "you must enter an amount greater than 0");
         balance[msg.sender]["ETH"].add(msg.value);
+        emit FundsDeposited(msg.value, msg.sender, "ETH");
+    }
+
+    function depositeToken(bytes10 _ticker, uint256 _amount) public payable onlyOwners{
+        require(msg.value > 0, "you must enter an amount greater than 0");
+        require(availableTokens[_ticker].tokenAdd != address(0), "Not a valid token");
+
+        IERC20(availableTokens[_ticker].tokenAdd).transferFrom(msg.sender, address(this), _amount);
+        balance[msg.sender][_ticker].add(_amount);
+
+        emit FundsDeposited(_amount, msg.sender, _ticker);
         
     }
     
-    function getBalance(string memory _ticker)public view returns(uint){
+    function getBalance(bytes10 _ticker)public view returns(uint){
         return balance[msg.sender][_ticker];
     }
     
@@ -81,13 +95,24 @@ contract Wallet{
 
     
 
-    function createTransfer(uint256 _amount, address payable _receiver, string memory _ticker) public onlyOwners{
+    function createTransfer(uint256 _amount, address payable _reciever, bytes10 _ticker) public onlyOwners{
+        emit TransferRequestCreated(transferRequests.length, _amount, msg.sender, _reciever);
         
-        emit TransferRequestCreated(transferRequests.length, _amount, msg.sender, _receiver);
+        Transfer memory t;
+
+        t.id = transferRequests.length;
+        t.amount = _amount;
+        t.sender = msg.sender;
+        t.reciever = _reciever;
+        t.approvals = 0;
+        t.hasBeenSent = false;
+        t.ticker = _ticker;
+
+
+         transferRequests.push(t);
+           
+    
         
-        transferRequests.push(
-            Transfer(_amount, _receiver, msg.sender, 0, false, transferRequests.length, _ticker)
-            );
     }
     
     function addOwner(address _newOwner) public onlyOwners{
@@ -103,7 +128,7 @@ contract Wallet{
         calculateLimit(owners.length);
     }
     
-    function removeOwner(address _ownerToRemove) public {
+    function removeOwner(address _ownerToRemove) public onlyOwners{
         uint userIndex;
         
         for(uint i = 0; i <= owners.length+1; i++){
@@ -120,11 +145,10 @@ contract Wallet{
         
     }
 
-    function approve(string memory _ticker, uint256 _id) public onlyOwners {
-        //owner should not be able to approve twice;
-        require (approvals[msg.sender][_id] == false);
-        //owner should not be able to approve a tx that has already been sent;
-        require (transferRequests[_id].hasBeenSent == false);
+    function approve(bytes10 _ticker, uint256 _id) public onlyOwners {
+       
+        require (approvals[msg.sender][_id] == false, "You are not able to approve twice");
+        require (transferRequests[_id].hasBeenSent == false, "You can't approve a sent transaction");
 
         emit ApprovalRecieved(_id, transferRequests[_id].approvals, msg.sender);
 
@@ -140,13 +164,12 @@ contract Wallet{
     }
     
     //  call() is more gas efficient 
-    function transferFunds(string memory _ticker, uint _id) public {
+    function transferFunds(bytes10 _ticker, uint _id) private nonReentrant{ 
         
         address reciever = transferRequests[_id].reciever;
         uint amount = transferRequests[_id].amount;
         
-        if(keccak256(bytes(_ticker)) == keccak256(bytes("ETH"))){
-            
+        if(_ticker == "ETH"){
             (bool success, ) = reciever.call{value: amount}("");
             require(success, "Transfer Failed");
             
@@ -154,7 +177,7 @@ contract Wallet{
             IERC20(availableTokens[_ticker].tokenAdd).transfer(reciever, amount);
             
         }
-        
+        emit TransferMade( _id, amount, msg.sender, reciever, true, _ticker);
         //update balance
         balance[reciever][_ticker].add(amount);
         
