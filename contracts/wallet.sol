@@ -30,15 +30,15 @@ contract Wallet is ReentrancyGuard{
 
     Transfer[] transferRequests;
 
+    mapping(bytes10 => Tokens) public availableTokens;
+    mapping(address => mapping(uint256 => bool))approvals;
+    mapping(address => mapping(bytes10 => uint256))balance;
+
     event ApprovalRecieved( uint256 _id, uint256 _approvals, address _approver );
     event TransferRequestCreated( uint256 _id, uint256 _amount, address _initiator, address _receiver );
     event TransferApproved( uint256 _id );
     event TransferMade( uint256 _id, uint256 _amount, address _sender, address _reciever, bool _hasBeenSent, bytes10 _ticker);
     event FundsDeposited( uint256 _amount, address reciever, bytes10 _ticker );
-
-    mapping(bytes10 => Tokens) public availableTokens;
-    mapping(address => mapping(uint256 => bool))approvals;
-    mapping(address => mapping(bytes10 => uint256))balance;
 
 
     modifier onlyOwners(){
@@ -51,8 +51,6 @@ contract Wallet is ReentrancyGuard{
         require (owner = true);
         _;
     }
-    
-    
 
     constructor(address[] memory _owners){
         owners = _owners;
@@ -68,6 +66,10 @@ contract Wallet is ReentrancyGuard{
         emit FundsDeposited(msg.value, msg.sender, "ETH");
     }
 
+    function withdraw()public onlyOwners {
+
+    }
+
     function depositeToken(bytes10 _ticker, uint256 _amount) public payable onlyOwners{
         require(msg.value > 0, "you must enter an amount greater than 0");
         require(availableTokens[_ticker].tokenAdd != address(0), "Not a valid token");
@@ -79,25 +81,9 @@ contract Wallet is ReentrancyGuard{
         
     }
     
-    function getBalance(bytes10 _ticker)public view returns(uint){
-        return balance[msg.sender][_ticker];
-    }
-    
-    //75% of wallet owners must approve
-    function calculateLimit(uint numOfAdd) public returns(uint){
-        uint _limit = numOfAdd *75 / 100;
-        limit = _limit;
-        return limit;
-    }
-    function getLimit() public view returns(uint){
-        return limit;
-    }
-
-    
 
     function createTransfer(uint256 _amount, address payable _reciever, bytes10 _ticker) public onlyOwners{
-        emit TransferRequestCreated(transferRequests.length, _amount, msg.sender, _reciever);
-        
+
         Transfer memory t;
 
         t.id = transferRequests.length;
@@ -108,16 +94,16 @@ contract Wallet is ReentrancyGuard{
         t.hasBeenSent = false;
         t.ticker = _ticker;
 
+        transferRequests.push(t);
 
-         transferRequests.push(t);
-           
+        emit TransferRequestCreated(transferRequests.length, _amount, msg.sender, _reciever);
     
         
     }
     
     function addOwner(address _newOwner) public onlyOwners{
       
-        for(uint i=0; i< owners.length +1; i++){
+        for(uint i=0; i < owners.length +1; i++){
             if(owners[i] == _newOwner){
                 revert("user is already an owner");
             }else{
@@ -163,14 +149,16 @@ contract Wallet is ReentrancyGuard{
         }
     }
     
-    //  call() is more gas efficient 
+    
+    // Any gas specific code should be avoided because gas costs can and will change.
+    //  call() is more gas efficient and is not gas
     function transferFunds(bytes10 _ticker, uint _id) private nonReentrant{ 
         
         address reciever = transferRequests[_id].reciever;
         uint amount = transferRequests[_id].amount;
         
         if(_ticker == "ETH"){
-            (bool success, ) = reciever.call{value: amount}("");
+            (bool success, ) = reciever.call{ value: amount }("");
             require(success, "Transfer Failed");
             
         }else{
@@ -186,6 +174,27 @@ contract Wallet is ReentrancyGuard{
         transferRequests.pop();
         
     }
+
+    
+
+    /********* Helper Functions *********/
+
+    function getBalance(bytes10 _ticker)public view returns(uint){
+        return balance[msg.sender][_ticker];
+    }
+    
+    //75% of wallet owners must approve
+    function calculateLimit(uint numOfAdd) public returns(uint){
+        uint _limit = numOfAdd *75 / 100;
+        limit = _limit;
+        return limit;
+    }
+
+
+    function getLimit() public view returns(uint){
+        return limit;
+    }
+
 
     function getTransferRequests() public view returns(Transfer[] memory){
         return transferRequests;
