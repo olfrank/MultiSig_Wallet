@@ -5,7 +5,7 @@ import '../node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '../node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import './WalletFactory.sol';
 
-contract Wallet is WalletFactory, ReentrancyGuard{
+contract Wallet is ReentrancyGuard{
     
     using SafeMath for uint256;
 
@@ -170,28 +170,28 @@ contract Wallet is WalletFactory, ReentrancyGuard{
     }
 
     function cancelTransfer( bytes10 _ticker, uint256 _id) public onlyOwners{
-        uint256 counter = 0;
+        uint256 index = 0;
         bool found;
         for(uint i = 0; i < transferRequests.length; i++){
             if(transferRequests[i].id == _id){ 
                 found = true;
                 break; 
             }
-            counter++;
+            index++;
         }
         if(!found) revert("The transfer id has not been found");
 
-        balance[msg.sender][_ticker] += transferRequests[counter].amount;
+        balance[msg.sender][_ticker] += transferRequests[index].amount;
 
         emit transferCancelled(
             _ticker, 
             _id, 
             msg.sender, 
-            transferRequests[counter].reciever, 
-            transferRequests[counter].amount 
+            transferRequests[index].reciever, 
+            transferRequests[index].amount 
             );
         
-        transferRequests[counter] = transferRequests[transferRequests.length - 1];
+        transferRequests[index] = transferRequests[transferRequests.length - 1];
         transferRequests.pop();
     }
 
@@ -233,7 +233,7 @@ contract Wallet is WalletFactory, ReentrancyGuard{
         owners.pop();
         calculateLimit(owners.length);
 
-        WalletFactory factory = WalletFactory(walletInstance);
+        // WalletFactory factory = WalletFactory(walletInstance);
     }
 
     
