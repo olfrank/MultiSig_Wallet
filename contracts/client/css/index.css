@@ -1,0 +1,92 @@
+body{
+    margin: auto;
+    background-color: rgb(22, 22, 22);
+    align-items: center;
+}
+
+#promptWrapper{
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    border: none;
+    border-radius: 10px;
+    /* background-color: black; */
+    width: 30rem;
+    padding: 20px;
+    margin-top: 25%;
+    animation: colorChange 10s infinite;
+    animation-delay: none;
+    
+}
+
+.wrapper2{
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    border: none;
+    border-radius: 10px;
+    /* background-color: rgb(26, 26, 26); */
+    width: 25rem;
+    padding: 20px;
+    animation: colorChange 10s infinite;
+    animation-delay: 0.5s;
+}
+.wrapper3{
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    border: none;
+    border-radius: 10px;
+    /* background-color: rgb(39, 39, 39); */
+    width: 20rem;
+    padding: 20px;
+    animation: colorChange 10s infinite;
+    animation-delay: 1s;
+}
+.wrapper4{
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    border: none;
+    border-radius: 10px;
+    /* background-color: rgb(39, 39, 39); */
+    width: 15rem;
+    padding: 20px;
+    animation: colorChange 10s infinite;
+    animation-delay: 1.5s;
+}
+
+#connectPrompt{
+    /* background-color: rgb(63, 63, 63); */
+    color:blanchedalmond;
+    align-items: center;
+    text-align: center;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    width: 15rem;
+    animation: colorChange 10s infinite;
+    animation-delay: 2s;
+}
+
+@keyframes colorChange{
+    0%{ background-color: rgb(151, 52, 52) }
+    5.8%{ background-color: rgb(156, 68, 134) }
+    11.7%{ background-color: rgb(190, 72, 190) }
+    17.5%{ background-color: rgb(139, 73, 145) }
+    23.3%{ background-color: rgb(104, 73, 145) }
+    29.1%{ background-color: rgb(80, 73, 145) }
+    34.9%{ background-color: rgb(73, 86, 145) }
+    40.7%{ background-color: rgb(73, 119, 145) }
+    46.5%{ background-color: rgb(73, 143, 145) }
+    52.3%{ background-color: rgb(73, 145, 111) }
+    58.1%{ background-color: rgb(73, 145, 83) }
+    63.9%{ background-color: rgb(87, 145, 73) }
+    69.7%{ background-color: rgb(133, 161, 67) }
+    75.5%{ background-color: rgb(194, 196, 76) }
+    81.3%{ background-color: rgb(194, 147, 47) }
+    87.1%{ background-color: rgb(214, 138, 38) }
+    92.9%{ background-color: rgb(206, 93, 28) }
+    100%{ background-color: rgb(204, 48, 20) }
+    
+}
