@@ -9,10 +9,10 @@ contract Wallet is ReentrancyGuard{
     
     using SafeMath for uint256;
 
-    address[] public owners;
-    uint limit;
+    uint256 limit;
     address walletInstance;
-    
+
+    address[] public owners;
 
     struct Transfer {
         uint256 id;
@@ -71,14 +71,14 @@ contract Wallet is ReentrancyGuard{
 
     function depositETH()public payable onlyOwners{
         require(msg.value > 0, "you must enter an amount greater than 0");
-        balance[msg.sender][bytes10("ETH")].add(msg.value);
+        balance[msg.sender][bytes10("ETH")] = balance[msg.sender][bytes10("ETH")].add(msg.value);
 
         emit ethDeposited(msg.value, msg.sender);
     }
 
     function withdrawETH(uint256 _amount) external payable onlyOwners {
         require(_amount < balance[msg.sender][bytes10("ETH")]);
-        balance[msg.sender][bytes10("ETH")].sub(_amount);
+        balance[msg.sender][bytes10("ETH")] = balance[msg.sender][bytes10("ETH")].sub(_amount);
         (bool success, ) = msg.sender.call{value: _amount}("");
         require(success, "withdraw failed");
 
@@ -90,7 +90,7 @@ contract Wallet is ReentrancyGuard{
         require(availableTokens[_ticker].tokenAdd != address(0), "Not a valid token");
 
         IERC20(availableTokens[_ticker].tokenAdd).transferFrom(msg.sender, address(this), _amount);
-        balance[msg.sender][_ticker].add(_amount);
+        balance[msg.sender][_ticker] = balance[msg.sender][_ticker].add(_amount);
 
         emit tokenDeposited(_amount, msg.sender, _ticker);
         
@@ -98,7 +98,7 @@ contract Wallet is ReentrancyGuard{
 
     function withdrawToken(bytes10 _ticker, uint256 _amount) external onlyOwners{
         require(_amount <= balance[msg.sender][_ticker], "cannot withdraw more than your balance");
-        balance[msg.sender][_ticker].sub(_amount);
+        balance[msg.sender][_ticker] = balance[msg.sender][_ticker].sub(_amount);
         IERC20(availableTokens[_ticker].tokenAdd).transfer( msg.sender, _amount );
 
     }
@@ -162,7 +162,7 @@ contract Wallet is ReentrancyGuard{
         }
         emit TransferMade( _id, amount, msg.sender, reciever, true, _ticker);
         //update balance
-        balance[reciever][_ticker].add(amount);
+        balance[reciever][_ticker] = balance[reciever][_ticker].add(amount);
         
         //update transferRequest array 
         transferRequests[_id] = transferRequests[transferRequests.length -1];
